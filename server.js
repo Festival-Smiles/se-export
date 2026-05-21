@@ -27,14 +27,22 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- 📥 THE EXPORT ENDPOINT ---
 app.post('/api/export', exportLimiter, async (req, res) => {
     const { channelId, jwtToken } = req.body;
 
+    // Safety net: Check if the parsers failed to pass the fields
     if (!channelId || !jwtToken) {
-        return res.status(400).send("<h2>Error</h2><p>Missing Channel ID or JWT Token.</p><a href='/'>Go back</a>");
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(400).send(`
+            <div style="font-family: sans-serif; background: #1a1a1a; color: white; padding: 40px; text-align: center;">
+                <h2 style="color: #e74c3c;">Bad Request</h2>
+                <p>Form submission was empty or corrupted. Please make sure both fields are filled out.</p>
+                <a href="/" style="color: #5dade2;">← Go Back</a>
+            </div>
+        `);
     }
 
-    // Updated CSV Header to include 'Watchtime (Minutes)'
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="se_leaderboard_${channelId.trim()}.csv"`);
 
@@ -45,7 +53,6 @@ app.post('/api/export', exportLimiter, async (req, res) => {
 
     try {
         while (keepFetching) {
-            // The API returns 'points' and 'minutes' (watchtime) in the user object
             const response = await axios.get(`https://api.streamelements.com/kappa/v2/points/${channelId.trim()}/top`, {
                 params: { limit: limit, offset: offset },
                 headers: { 'Authorization': `Bearer ${jwtToken.trim()}` }
@@ -61,7 +68,7 @@ app.post('/api/export', exportLimiter, async (req, res) => {
             for (const user of users) {
                 const username = user.username.toLowerCase().trim();
                 const points = parseInt(user.points);
-                const minutes = parseInt(user.minutes || 0); // Pulling the watchtime minutes
+                const minutes = parseInt(user.minutes || 0);
                 
                 csvData += `"${username}",${points},${minutes}\n`; 
             }
@@ -85,6 +92,7 @@ app.post('/api/export', exportLimiter, async (req, res) => {
     }
 });
 
+// Explicit interface binding for cloud container proxies
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Secure SE Exporter running on port ${PORT}`);
 });
