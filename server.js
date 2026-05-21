@@ -23,6 +23,7 @@ const exportLimiter = rateLimit({
 });
 
 // Middleware to parse form data and serve the static HTML folder
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
