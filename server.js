@@ -35,27 +35,30 @@ app.get('/api/export', (req, res) => {
 app.post('/api/export', exportLimiter, async (req, res) => {
     const { channelId, jwtToken } = req.body;
 
-    // Safety net: Check if the parsers failed to pass the fields
     if (!channelId || !jwtToken) {
         res.setHeader('Content-Type', 'text/html');
         return res.status(400).send(`
             <div style="font-family: sans-serif; background: #1a1a1a; color: white; padding: 40px; text-align: center;">
                 <h2 style="color: #e74c3c;">Bad Request</h2>
-                <p>Form submission was empty or corrupted. Please make sure both fields are filled out.</p>
+                <p>Form submission was empty or corrupted.</p>
                 <a href="/" style="color: #5dade2;">← Go Back</a>
             </div>
         `);
     }
 
+    // Set headers to trigger the CSV download
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="se_leaderboard_${channelId.trim()}.csv"`);
 
-    let csvData = "Username,Points,Watchtime (Minutes)\n"; 
-    let offset = 0;
+    // Master dictionary to hold combined user data
+    const masterUserList = {}; 
     const limit = 100;
-    let keepFetching = true;
 
     try {
+        // --- STEP 1: FETCH POINTS LEADERBOARD ---
+        let offset = 0;
+        let keepFetching = true;
+
         while (keepFetching) {
             const response = await axios.get(`https://api.streamelements.com/kappa/v2/points/${channelId.trim()}/top`, {
                 params: { limit: limit, offset: offset },
@@ -71,16 +74,66 @@ app.post('/api/export', exportLimiter, async (req, res) => {
 
             for (const user of users) {
                 const username = user.username.toLowerCase().trim();
-                const points = parseInt(user.points);
-                const minutes = parseInt(user.minutes || 0);
+                const points = parseInt(user.points) || 0;
                 
-                csvData += `"${username}",${points},${minutes}\n`; 
+                // Initialize user if they don't exist in the dictionary yet
+                if (!masterUserList[username]) {
+                    masterUserList[username] = { points: 0, minutes: 0 };
+                }
+                
+                masterUserList[username].points = points;
+            }
+
+            offset += limit;
+            await new Promise(resolve => setTimeout(resolve, 300)); // Rate limit safety
+        }
+
+        // --- STEP 2: FETCH WATCHTIME LEADERBOARD ---
+        offset = 0; // Reset offset for the new endpoint
+        keepFetching = true;
+
+        while (keepFetching) {
+            // Note the endpoint change to /watchtime
+            const response = await axios.get(`https://api.streamelements.com/kappa/v2/points/${channelId.trim()}/watchtime`, {
+                params: { limit: limit, offset: offset },
+                headers: { 'Authorization': `Bearer ${jwtToken.trim()}` }
+            });
+
+            const users = response.data.users;
+
+            if (!users || users.length === 0) {
+                keepFetching = false;
+                break;
+            }
+
+            for (const user of users) {
+                const username = user.username.toLowerCase().trim();
+                const minutes = parseInt(user.minutes) || 0;
+                
+                // Initialize user if they weren't on the points leaderboard
+                if (!masterUserList[username]) {
+                    masterUserList[username] = { points: 0, minutes: 0 };
+                }
+                
+                masterUserList[username].minutes = minutes;
             }
 
             offset += limit;
             await new Promise(resolve => setTimeout(resolve, 300));
         }
 
+        // --- STEP 3: ASSEMBLE THE FINAL CSV ---
+        let csvData = "Username,Points,Watchtime (Minutes)\n"; 
+
+        // Loop through the master dictionary
+        for (const [username, stats] of Object.entries(masterUserList)) {
+            // Only add the user to the CSV if they have more than 0 points OR more than 0 minutes
+            if (stats.points > 0 || stats.minutes > 0) {
+                csvData += `"${username}",${stats.points},${stats.minutes}\n`;
+            }
+        }
+
+        // Send the completed file to the browser
         res.send(csvData);
 
     } catch (err) {
