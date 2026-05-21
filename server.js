@@ -84,6 +84,6 @@ app.post('/api/export', exportLimiter, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Secure SE Exporter running on port ${PORT}`);
 });
