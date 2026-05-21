@@ -27,6 +27,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/api/export', (req, res) => {
+    res.redirect('/');
+});
+
 // --- 📥 THE EXPORT ENDPOINT ---
 app.post('/api/export', exportLimiter, async (req, res) => {
     const { channelId, jwtToken } = req.body;
