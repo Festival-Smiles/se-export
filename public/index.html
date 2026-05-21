@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamElements Exporter | Open Source Tool</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         .container { background: #1a1a1a; padding: 40px; border-radius: 12px; border: 1px solid #333; max-width: 500px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h1 { color: #5dade2; margin-top: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
         p { color: #888; font-size: 14px; line-height: 1.5; }
@@ -13,11 +13,20 @@
         label { display: block; font-size: 12px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
         input { width: 100%; padding: 12px; background: #121212; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; font-size: 14px; outline: none; transition: border-color 0.2s; }
         input:focus { border-color: #5dade2; }
-        button { background: #5dade2; color: #111; border: none; padding: 14px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: filter 0.2s; }
+        button { background: #5dade2; color: #111; border: none; padding: 14px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: filter 0.2s; margin-top: 5px; }
         button:hover { filter: brightness(1.1); }
+        
+        /* 📖 INSTRUCTIONS ACCORDION */
+        .instructions-container { margin: 20px 0; border: 1px solid #444; border-radius: 6px; background: #121212; overflow: hidden; }
+        .instructions-header { background: #222; padding: 12px; font-size: 13px; font-weight: bold; color: #5dade2; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        .instructions-content { padding: 15px; font-size: 13px; color: #ccc; line-height: 1.6; display: none; border-top: 1px solid #444; }
+        .instructions-content ol { margin: 0; padding-left: 20px; }
+        .instructions-content li { margin-bottom: 8px; }
+        .instructions-content strong { color: #fff; }
+        
         .disclaimer { margin-top: 25px; padding: 15px; background: #1f1414; border-left: 4px solid #e74c3c; border-radius: 4px; font-size: 13px; color: #d0d0d0; line-height: 1.4; }
-        .github-link { display: inline-block; margin-top: 20px; color: #a2d9ce; text-decoration: none; font-weight: bold; font-size: 13px; text-align: center; width: 100%; }
-        .github-link:hover { text-decoration: underline; }
+        .github-link { display: flex; align-items: center; justify-content: center; margin-top: 25px; color: #a2d9ce; text-decoration: none; font-weight: bold; font-size: 13px; text-align: center; width: 100%; transition: color 0.2s; }
+        .github-link:hover { color: #5dade2; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -26,14 +35,30 @@
         <h1>📥 SE Leaderboard Exporter</h1>
         <p>Bypass the UI restrictions and download your complete StreamElements leaderboard as a CSV file instantly.</p>
         
+        <div class="instructions-container">
+            <div class="instructions-header" onclick="toggleInstructions()">
+                <span>🔍 How to find your Channel ID & JWT Token</span>
+                <span id="arrow">▼</span>
+            </div>
+            <div class="instructions-content" id="instructionsBody">
+                <ol>
+                    <li>Log into your <strong>StreamElements Dashboard</strong>.</li>
+                    <li>Click on your profile avatar in the top right corner and select <strong>Channel settings</strong>.</li>
+                    <li>Under the <strong>Channel info</strong> tab, you will see your <strong>Account ID</strong> (this is your Channel ID).</li>
+                    <li>Right next to or below it, click the <strong>Show Secrets</strong> button to display your <strong>JWT Token</strong>.</li>
+                    <li>Copy both values and paste them into the form fields below.</li>
+                </ol>
+            </div>
+        </div>
+
         <form action="/api/export" method="POST">
             <div class="form-group">
                 <label>Channel ID</label>
-                <input type="text" name="channelId" placeholder="e.g. 5e1b2c..." required>
+                <input type="text" name="channelId" placeholder="e.g. 5e1b2c3d4e5f6g7h8i9j0k1l" required autocomplete="off">
             </div>
             <div class="form-group">
                 <label>JWT Token</label>
-                <input type="password" name="jwtToken" placeholder="Found in Channel Settings > Show Secrets" required>
+                <input type="password" name="jwtToken" placeholder="Paste your Secret JWT Token here" required autocomplete="off">
             </div>
             <button type="submit">Download CSV Data</button>
         </form>
@@ -43,8 +68,23 @@
             This is a free, open-source utility. Your JWT Token acts as the master key to your account. <strong>We NEVER save, log, or store your token.</strong> It is held in temporary server memory for the seconds it takes to generate your file, and is immediately destroyed.
         </div>
 
-        <a href="https://github.com/yourusername/se-exporter" target="_blank" class="github-link">🔍 View the open-source code on GitHub</a>
+        <a href="https://github.com/Festival-Smiles/se-export/" target="_blank" class="github-link">
+            🔍 View the open-source code on GitHub
+        </a>
     </div>
 
+    <script>
+        function toggleInstructions() {
+            const body = document.getElementById('instructionsBody');
+            const arrow = document.getElementById('arrow');
+            if (body.style.display === 'block') {
+                body.style.display = 'none';
+                arrow.innerText = '▼';
+            } else {
+                body.style.display = 'block';
+                arrow.innerText = '▲';
+            }
+        }
+    </script>
 </body>
 </html>
