@@ -30,5 +30,5 @@ If you prefer to run this tool entirely on your own local machine instead of a h
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/YOUR_USERNAME/se-leaderboard-exporter.git](https://github.com/YOUR_USERNAME/se-leaderboard-exporter.git)
-cd se-leaderboard-exporter
+git clone [https://github.com/Festival-Smiles/se-export.git](https://github.com/Festival-Smiles/se-export.git)
+cd se-export
